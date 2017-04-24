@@ -1,57 +1,62 @@
-
-import urllib2
-
+from urllib.request import urlopen
 from bs4 import BeautifulSoup
-
 import sys
+import re
 
 
-urls = []
-urls2 = []
+if len(sys.argv) != 2:
+	print("usage %s URL" %(sys.argv[0]))
+	sys.exit(0)
 
 
-target_url = sys.argv[1]
+targetUrl = str(sys.argv[1])
 
 
-url = urllib2.urlopen(target_url).read()
-soup = BeautifulSoup(url)
-
-
-"""finding all 'a' tags on html, after that search for all href and extract all http tags"""
-for line in soup.find_all('a'):
-	newline = line.get('href')
+def getInternalLinks(url):
 
 	try:
-		if newline[:4] == 'http':
-			if target_url == newline:
-				urls.append(str(newline))
-		elif newline[:1] == '/':
-			combline = target_url + newline
-			urls.append(str(combline))		
-	except:
-		pass
+		html = urlopen(url)
+	except AttributeError as e:
+		print(e)
+
+	try:
+		bsObj = BeautifulSoup(html.read())
+	except AttributeError as e:
+		print(e)
 
 
-for uurl in urls:
-	url = urllib2.urlopen(uurl).read()
-	soup = BeautifulSoup(url)
+	internalLinks = []
 
-	for line in soup.find_all('a'):
-		newline = line.get('href')
-
-		try:
-			if newline[:4] == "http":
-				if target_url == newline:
-					urls2.append(str(newline))
-			elif newline[:1] == "/":
-				combline = target_url + newline
-				urls2.append(str(combline))
-		except:
-			pass
+	for link in bsObj.findAll("a"):
+		if 'href' in link.attrs:
+			print("[++]_INTERNAL LINKS_[++]"+link.attrs['href']+".")
+			
 
 
 
-urls3 = set(urls2)
+def getExternalLinks(url):
 
-for value in urls3:
-	print value
+	try:
+		html = urlopen(url)
+	except AttributeError as e:
+		print(e)
+
+	try:
+		bsObj = BeautifulSoup(html.read())
+	except AttributeError as e:
+		print(e)
+
+
+	externalLinks = []
+
+	for link in bsObj.findAll("a", href=re.compile("^(http|www)((?!"+url+").)*$")):
+		if link.attrs['href'] is not None:
+			if link.attrs not in externalLinks:
+				externalLinks.append(link.attrs['href'])
+				print("[++]_EXTERNAL LINKS_[++]"+link.attrs['href']+".")
+
+
+
+
+getInternalLinks(targetUrl)
+getExternalLinks(targetUrl)
